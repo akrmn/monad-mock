@@ -82,7 +82,9 @@ module Control.Monad.Mock.TH (makeAction, deriveAction, ts) where
 
 import Control.Monad (replicateM, when, zipWithM)
 import Data.Char (toUpper)
+import Data.Maybe (catMaybes)
 import Data.Foldable (traverse_)
+import Data.Traversable (for)
 import Data.List (foldl', nub, partition)
 import Data.Type.Equality ((:~:)(..))
 import GHC.Exts (Constraint)
@@ -434,10 +436,13 @@ tyVarBndrName (KindedTV name _) = name
 
 -- | Given some 'Info' about a class, get its methods as 'SigD' declarations.
 classMethods :: Info -> Q [Dec]
-classMethods (ClassI (ClassD _ _ _ _ methods) _) = return $ removeDefaultSigs methods
-  where removeDefaultSigs = filter $ \case
-          DefaultSigD{} -> False
-          _             -> True
+classMethods (ClassI (ClassD _ _ _ _ methods) _) =
+  fmap catMaybes $ for methods $ \case
+    SigD name _decType -> do
+      reify name >>= \case
+        ClassOpI _name typ _parent -> return $ Just (SigD name typ)
+        _ -> return Nothing
+    _ -> pure Nothing
 classMethods other = fail $ "classMethods: internal error; expected a class type, given " ++ show other
 
 {------------------------------------------------------------------------------|
