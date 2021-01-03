@@ -104,7 +104,7 @@ import Control.Monad.Mock.TH.Internal.TypesQuasi (ts)
 --
 -- 'makeAction' "FileSystemAction" ['ts'| MonadFileSystem |]
 -- @
-makeAction :: String -> Cxt -> Q [Dec]
+makeAction :: String -> [Type] -> Q [Dec]
 makeAction actionNameStr classTs = do
     traverse_ assertDerivableConstraint classTs
 
