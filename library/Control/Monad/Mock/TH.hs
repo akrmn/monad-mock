@@ -1,5 +1,7 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE UndecidableInstances #-}
 #if MIN_VERSION_GLASGOW_HASKELL(8,0,1,0)
 {-# LANGUAGE TemplateHaskellQuotes #-}
 #else
@@ -88,23 +90,38 @@ import Data.Traversable (for)
 import Data.List (foldl', nub, partition)
 import Data.Type.Equality ((:~:)(..))
 import GHC.Exts (Constraint)
+import GHC.TypeLits (TypeError, ErrorMessage (..))
 import Language.Haskell.TH
 
 import Control.Monad.Mock (Action(..), MockT, mockAction)
 
--- | Given a list of monadic typeclass constraints of kind @* -> 'Constraint'@,
--- generate a type with an 'Action' instance with constructors that have the
--- same types as the methods.
+-- | Given a (list of) monadic typeclass constraint(s)
+-- of kind @* -> 'Constraint'@, generate a type with an 'Action' instance
+-- with constructors that have the same types as the methods.
 --
 -- @
 -- class 'Monad' m => MonadFileSystem m where
 --   readFile :: 'FilePath' -> m 'String'
 --   writeFile :: 'FilePath' -> 'String' -> m ()
 --
--- 'makeAction' "FileSystemAction" ['ts'| MonadFileSystem |]
+-- -- single monadic typeclass
+-- 'makeAction' "FileSystemAction" [t| MonadFileSystem |]
 -- @
-makeAction :: String -> [Type] -> Q [Dec]
-makeAction actionNameStr classTs = do
+--
+-- @
+-- class 'Monad' m => MonadFileSystem m where
+--   readFile :: 'FilePath' -> m 'String'
+--   writeFile :: 'FilePath' -> 'String' -> m ()
+--
+-- class 'Monad' m => MonadConsole m where
+--   logLine :: String -> m ()
+--
+-- -- multiple monadic typeclasses
+-- 'makeAction' "FileSystemOrConsoleAction" [[t|MonadFileSystem|], [t|MonadConsole|]]
+-- @
+makeAction :: AsAction a => String -> a -> Q [Dec]
+makeAction actionNameStr arg = do
+    classTs <- getActionTypes arg
     traverse_ assertDerivableConstraint classTs
 
     actionParamName <- newName "r"
@@ -443,6 +460,27 @@ classMethods (ClassI (ClassD _ _ _ _ methods) _) =
         _ -> return Nothing
     _ -> pure Nothing
 classMethods other = fail $ "classMethods: internal error; expected a class type, given " ++ show other
+
+-- | This class allows @makeAction@ to accept either a single TH-quoted type
+-- or a list of TH-quoted types.
+class AsAction t where
+  getActionTypes :: t -> Q [Type]
+
+instance {-# OVERLAPS #-} AsAction Type where
+  getActionTypes = pure . pure
+
+instance {-# OVERLAPS #-} AsAction a => AsAction [a] where
+  getActionTypes = fmap concat . traverse getActionTypes
+
+instance {-# OVERLAPS #-} AsAction a => AsAction (Q a) where
+  getActionTypes = (>>= getActionTypes)
+
+type NoAsAction a =
+  'Text "makeAction expects a quoted type or a list of quoted types"
+  ':$$: 'Text "got: " ':<>: 'ShowType a
+
+instance {-# OVERLAPPABLE #-} TypeError (NoAsAction a) => AsAction a where
+  getActionTypes = getActionTypes
 
 {------------------------------------------------------------------------------|
 | The following definitions abstract over differences in base and              |

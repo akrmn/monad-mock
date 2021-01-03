@@ -17,13 +17,20 @@ import Control.Monad.Mock.TH
 class MonadError e m => MonadFileSystem e m | m -> e where
   readFile :: FilePath -> m String
   writeFile :: FilePath -> String -> m ()
-makeAction "FileSystemAction" [ts| MonadFileSystem String |]
+class Monad m => MonadConsole m where
+  logLine :: String -> m ()
+makeAction "FileSystemOrConsoleAction" [[t|MonadFileSystem String|], [t|MonadConsole|]]
 
 copyFileAndReturn :: MonadFileSystem e m => FilePath -> FilePath -> m String
 copyFileAndReturn a b = do
   x <- readFile a
   writeFile b x
   return x
+
+catFile :: (MonadFileSystem e m, MonadConsole m) => FilePath -> m ()
+catFile a = do
+  x <- readFile a
+  logLine x
 
 spec :: Spec
 spec = describe "MockT" $ do
@@ -33,6 +40,13 @@ spec = describe "MockT" $ do
                      , WriteFile "bar.txt" "file contents" :-> () ]
           & runExcept
     result `shouldBe` Right "file contents"
+
+  it "runs computations with mocked method implementations from multiple classes" $ do
+    let result = catFile "foo.txt"
+          & runMockT [ ReadFile "foo.txt" :-> "file contents"
+                     , LogLine "file contents" :-> () ]
+          & runExcept
+    result `shouldBe` Right ()
 
   it "raises an exception if calls are not in the right order" $ do
     let result = copyFileAndReturn "foo.txt" "bar.txt"
