@@ -20,7 +20,7 @@ copyFile a b = do
   x <- readFile a
   writeFile b x
 
-makeMock "FileSystemAction" [ts| MonadFileSystem |]
+makeAction "FileSystemAction" [t| MonadFileSystem |]
 
 spec = describe "copyFile" $
   it "reads a file and writes its contents to another file" $

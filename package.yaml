@@ -43,8 +43,6 @@ library:
   - base >= 4.8.0.0 && < 5
   - constraints >= 0.3.1
   - exceptions >= 0.6
-  - haskell-src-exts
-  - haskell-src-meta
   - th-orphans
   - monad-control >= 1.0.0.0 && < 2
   - mtl

@@ -29,7 +29,7 @@ might use 'makeAction' to automatically generate the necessary datatype and
 instances:
 
 @
-'makeAction' \"FileSystemAction\" ['ts'| MonadFileSystem |]
+'makeAction' \"FileSystemAction\" [t| MonadFileSystem |]
 @
 
 This generates three things:
@@ -78,7 +78,7 @@ spec = describe "copyFile" '$'
                 , WriteFile "bar.txt" "contents" ':->' () ]
 @
 -}
-module Control.Monad.Mock.TH (makeAction, deriveAction, ts) where
+module Control.Monad.Mock.TH (makeAction, deriveAction) where
 
 import Control.Monad (replicateM, when, zipWithM)
 import Data.Char (toUpper)
@@ -91,7 +91,6 @@ import GHC.Exts (Constraint)
 import Language.Haskell.TH
 
 import Control.Monad.Mock (Action(..), MockT, mockAction)
-import Control.Monad.Mock.TH.Internal.TypesQuasi (ts)
 
 -- | Given a list of monadic typeclass constraints of kind @* -> 'Constraint'@,
 -- generate a type with an 'Action' instance with constructors that have the
