@@ -73,6 +73,7 @@ module Control.Monad.Mock
 
   -- * Actions and actions with results
   , Action(..)
+  , ShowAction(..)
   , WithResult(..)
   ) where
 
@@ -96,24 +97,27 @@ error' = errorWithoutStackTrace
 error' = error
 #endif
 
+-- | This class is used for converting an 'Action' to a 'String'. There's an
+-- overlappable instance that uses 'Show', which works for any type @f@ with an
+-- instance @forall a. 'Show' (f a)@. That, in turn, can be derived by
+-- GHC using a standalone @deriving@ clause.
+-- Alternatively, you can define your own @ShowAction@ instance, and it will be
+-- used instead of the overlappable one.
+class ShowAction f where
+  -- | Converts an 'Action' to a 'String', which will be used when displaying
+  -- mock failures.
+  showAction :: f a -> String
+
+instance {-# OVERLAPPABLE #-} (forall x. Show (f x)) => ShowAction f where
+  showAction =  show
+
 -- | A class of types that represent typeclass method calls. The type must be of
 -- kind @* -> *@, and its type parameter should represent type of the method’s
 -- return type.
-class Action f where
+class ShowAction f => Action f where
   -- | Compares two 'Action's for equality, and produces a witness of type
   -- equality if the two actions are, in fact, equal.
   eqAction :: f a -> f b -> Maybe (a :~: b)
-
-  -- | Converts an 'Action' to a 'String', which will be used when displaying
-  -- mock failures.
-  --
-  -- The default implementation of 'showAction' just uses 'Show', assuming there
-  -- is an instance @forall a. 'Show' (f a)@. This instance can be derived by
-  -- GHC using a standalone @deriving@ clause.
-  showAction :: f a -> String
-
-  default showAction :: (forall x. Show (f x)) => f a -> String
-  showAction = show
 
 -- | Represents both an expected call (an 'Action') and its expected result.
 data WithResult f where
