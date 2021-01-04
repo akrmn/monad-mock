@@ -1,5 +1,6 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-|
 This module provides a monad transformer that helps create “mocks” of
@@ -85,8 +86,6 @@ import Control.Monad.State (StateT, MonadState(..), runStateT)
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.Trans.Control (ComposeSt, MonadBaseControl(..), MonadTransControl(..), defaultLiftBaseWith, defaultLiftWith, defaultRestoreM, defaultRestoreT)
 import Control.Monad.Writer (MonadWriter)
-import Data.Constraint ((:-), (\\))
-import Data.Constraint.Forall (ForallF, instF)
 import Data.Functor.Identity (Identity, runIdentity)
 import Data.Type.Equality ((:~:)(..))
 
@@ -113,13 +112,8 @@ class Action f where
   -- GHC using a standalone @deriving@ clause.
   showAction :: f a -> String
 
-  default showAction :: ForallF Show f => f a -> String
-  showAction = showAction' where
-    -- This needs to be in a separate binding, since for some reason GHC
-    -- versions prior to 8.0.2 choke on this if it’s inlined into the definition
-    -- of showAction.
-    showAction' :: forall g a. ForallF Show g => g a -> String
-    showAction' x = show x \\ (instF :: ForallF Show g :- Show (g a))
+  default showAction :: (forall x. Show (f x)) => f a -> String
+  showAction = show
 
 -- | Represents both an expected call (an 'Action') and its expected result.
 data WithResult f where

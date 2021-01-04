@@ -41,7 +41,6 @@ default-extensions:
 library:
   dependencies:
   - base >= 4.8.0.0 && < 5
-  - constraints >= 0.3.1
   - exceptions >= 0.6
   - th-orphans
   - monad-control >= 1.0.0.0 && < 2
