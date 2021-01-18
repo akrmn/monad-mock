@@ -66,6 +66,8 @@ test-suite monad-stub-test-suite
       test-suite
   default-extensions: DefaultSignatures FlexibleContexts FlexibleInstances GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses ScopedTypeVariables StandaloneDeriving TupleSections TypeFamilies TypeOperators
   ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
+  build-tool-depends:
+      hspec-discover:hspec-discover
   build-depends:
       base
     , hspec

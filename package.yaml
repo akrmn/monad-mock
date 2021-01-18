@@ -55,6 +55,8 @@ library:
 
 tests:
   monad-stub-test-suite:
+    build-tools:
+    - hspec-discover
     dependencies:
     - base
     - hspec
